@@ -13,6 +13,7 @@ public class QuizActivity extends AppCompatActivity {
     private Button mTrueButton;
     private Button mFalseButton;
     private Button mNextButton;
+    private Button mPrevButton;
     private TextView mQuestionTextView;
 
     private Question[] mQuestionBank = new Question[] {
@@ -64,10 +65,24 @@ public class QuizActivity extends AppCompatActivity {
                 scrollQuestions(true);
             }
         });
+
+        mPrevButton = (Button) findViewById(R.id.prev_button);
+        mPrevButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                scrollQuestions(false);
+            }
+        });
     }
 
     private void scrollQuestions(boolean nextQuestion) {
-        mCurrentIndex = (mCurrentIndex + (nextQuestion?1:-1) % mQuestionBank.length;
+        if (nextQuestion) {
+            mCurrentIndex += 1;
+        } else {
+            mCurrentIndex -= 1;
+        }
+
+        mCurrentIndex %= mQuestionBank.length;
         updateQuestion();
     }
 
@@ -78,11 +93,13 @@ public class QuizActivity extends AppCompatActivity {
 
     private void checkAnswer(boolean userPressedTrue) {
         int answerID = 0;
+
         if (userPressedTrue == mQuestionBank[mCurrentIndex].isAnswerTrue()) {
             answerID = R.string.correct_toast;
         } else {
             answerID = R.string.incorrect_toast;
         }
+
         Toast toast = Toast.makeText(QuizActivity.this, answerID, Toast.LENGTH_SHORT);
         toast.setGravity(Gravity.TOP, 0, 0);
         toast.show();
