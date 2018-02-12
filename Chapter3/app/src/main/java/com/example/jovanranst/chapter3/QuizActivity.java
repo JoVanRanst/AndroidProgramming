@@ -1,5 +1,6 @@
 package com.example.jovanranst.chapter3;
 
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -9,10 +10,18 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicIntegerArray;
+
 public class QuizActivity extends AppCompatActivity {
 
     private static final String TAG = "QuizActivity";
     private static final String KEY_INDEX = "index";
+    private static final String KEY_ANSWERED = "answered";
+    private static final String KEY_ANSWERS = "answers";
 
     private Button mTrueButton;
     private Button mFalseButton;
@@ -29,7 +38,10 @@ public class QuizActivity extends AppCompatActivity {
             new Question(R.string.question_oceans, true),
     };
 
+    private int mAnswers[] = {0,0,0,0,0,0};
+
     private int mCurrentIndex = 0;
+    private boolean mAlreadyPressed = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +51,8 @@ public class QuizActivity extends AppCompatActivity {
 
         if (savedInstanceState != null) {
             mCurrentIndex =savedInstanceState.getInt(KEY_INDEX, 0);
+            mAlreadyPressed = savedInstanceState.getBoolean(KEY_ANSWERED);
+            mAnswers = savedInstanceState.getIntArray(KEY_ANSWERS);
         }
 
         mQuestionTextView = (TextView) findViewById(R.id.question_text_view);
@@ -90,6 +104,8 @@ public class QuizActivity extends AppCompatActivity {
 
         Log.i(TAG, "onSaveInstanceState(Bundle) called");
         savedInstanceState.putInt(KEY_INDEX, mCurrentIndex);
+        savedInstanceState.putBoolean(KEY_ANSWERED, mAlreadyPressed);
+        savedInstanceState.putIntArray(KEY_ANSWERS, mAnswers);
     }
 
     @Override
@@ -123,6 +139,8 @@ public class QuizActivity extends AppCompatActivity {
     }
 
     private void scrollQuestions(boolean nextQuestion) {
+        mAlreadyPressed = false;
+
         if (nextQuestion) {
             mCurrentIndex += 1;
         } else {
@@ -138,17 +156,69 @@ public class QuizActivity extends AppCompatActivity {
         mQuestionTextView.setText(QuestionID);
     }
 
+    private boolean allQuestionsAnswered() {
+        for (int i=0; i<6; i++) {
+            if (mAnswers[i] == 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private void printScore() {
+        int total = 0;
+
+        for (int i=0; i<6; i++) {
+            if (mAnswers[i] == 1) {
+                total++;
+            }
+        }
+
+        StringBuilder text = new StringBuilder();
+        text.append("You had this question ");
+        text.append(mAnswers[mCurrentIndex] == 1?"Correct":"Incorrect");
+        text.append(". \nMaking your total score ");
+        text.append(total);
+        text.append(" out of 6");
+
+        Toast toast = Toast.makeText(QuizActivity.this, text.toString(), Toast.LENGTH_LONG);
+        toast.setGravity(Gravity.BOTTOM, 0, 0);
+        toast.show();
+    }
+
     private void checkAnswer(boolean userPressedTrue) {
         int answerID = 0;
 
-        if (userPressedTrue == mQuestionBank[mCurrentIndex].isAnswerTrue()) {
-            answerID = R.string.correct_toast;
-        } else {
-            answerID = R.string.incorrect_toast;
-        }
+        if(mAnswers[mCurrentIndex] == 0) {
+            if (userPressedTrue == mQuestionBank[mCurrentIndex].isAnswerTrue()) {
+                answerID = R.string.correct_toast;
+                mAnswers[mCurrentIndex] = 1;
+            } else {
+                answerID = R.string.incorrect_toast;
+                mAnswers[mCurrentIndex] = -1;
+            }
 
-        Toast toast = Toast.makeText(QuizActivity.this, answerID, Toast.LENGTH_SHORT);
-        toast.setGravity(Gravity.TOP, 0, 0);
-        toast.show();
+            if (!allQuestionsAnswered()) {
+                if (!mAlreadyPressed) {
+                    Toast toast = Toast.makeText(QuizActivity.this, answerID, Toast.LENGTH_SHORT);
+                    toast.setGravity(Gravity.TOP, 0, 0);
+                    toast.show();
+                    mAlreadyPressed = true;
+                } else {
+                    // Already gave an answer
+                }
+            } else {
+                // Print score toast
+                printScore();
+                mAlreadyPressed = true;
+            }
+        } else {
+            // Already gave an answer
+            if (allQuestionsAnswered()) {
+                printScore();
+            } else {
+                /// Maybe tell them their prev answer
+            }
+        }
     }
 }
